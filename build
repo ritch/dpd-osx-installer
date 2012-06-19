@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+
+require('shelljs/global');
+
+var deployd = __dirname + '/deployd'
+	,	tools = deployd + '/tools'
+	, modules = deployd + '/node_modules';
+
+rm('-rf', deployd);
+mkdir('-p', deployd);
+mkdir('-p', tools);
+mkdir('-p', modules);
+
+// Add tested version of node and mongod to deployd\tools
+console.log('copying node and mongod to', tools);
+cp(which('node'), tools);
+cp(which('mongod'), tools);
+cp(__dirname + '/update.js', deployd);
+cp('-r', __dirname + '/bin', deployd);
+exec('chmod +x ' + tools + '/node');
+exec('chmod +x ' + tools + '/mongod');
+exec('chmod +x ' + deployd + '/bin/dpd');
+
+// Add tested version of npm and shelljs to deployd\node_modules
+cd(deployd);
+exec('npm install npm@1.1.24');
+exec('npm install shelljs');
+
+// Run deployd/bin/dpd-update
+exec('node ' + deployd + '/update.js');
