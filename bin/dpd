@@ -1,4 +1,6 @@
 #!/bin/sh
 
-BASEDIR=$(dirname $0)
-$BASEDIR/../tools/node $BASEDIR/../node_modules/deployd/bin/dpd -m $BASEDIR/../tools/mongod $@
+BASEDIR=$(dirname $0);
+export NODE_PATH=$BASEDIR/../node_modules:$NODE_PATH;
+
+$BASEDIR/../tools/node $BASEDIR/../node_modules/deployd/bin/dpd -m $BASEDIR/../tools/mongod $@;

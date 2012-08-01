@@ -7,6 +7,7 @@ var deployd = __dirname + '/deployd'
 	, modules = deployd + '/node_modules';
 
 rm('-rf', deployd);
+rm('*.pkg');
 mkdir('-p', deployd);
 mkdir('-p', tools);
 mkdir('-p', modules);
@@ -20,11 +21,23 @@ cp('-r', __dirname + '/bin', deployd);
 exec('chmod +x ' + tools + '/node');
 exec('chmod +x ' + tools + '/mongod');
 exec('chmod +x ' + deployd + '/bin/dpd');
+exec('chmod +x ' + deployd + '/bin/dpd-update');
+exec('chmod +x ' + deployd + '/bin/dpd-uninstall');
 
 // Add tested version of npm and shelljs to deployd\node_modules
 cd(deployd);
-exec('npm install npm@1.1.24');
+exec('npm install npm@1.1.38');
 exec('npm install shelljs');
+exec('npm install commander');
 
 // Run deployd/bin/dpd-update
-exec('node ' + deployd + '/update.js');
+exec('node ' + deployd + '/update.js --master');
+
+// Build package w/ version
+cd(__dirname);
+var version = require('./deployd/node_modules/deployd/package').version;
+
+console.info('building deployd', version, 'package');
+
+
+exec('./PackageMaker.app/Contents/MacOS/PackageMaker -d ' + pwd() + '/package.pmdoc -v -i com.deployd -o deployd-osx-' + version + '.pkg');

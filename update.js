@@ -1,15 +1,20 @@
 require('shelljs/global');
 
 var npm = require('npm')
+  , program = require('commander')
   , Stream = require('stream')
   , stdin = process.openStdin()
   , dummyStream = new Stream()
-  , deploydPackage
-  , DEPLOYD = 'https://github.com/ritch/deployd/tarball/0.5';
+  , deploydPackage;
+
+program
+  .version('0.5.0')
+  .option('-f, --force', "Forces reinstall")
+  .option('-m, --master', "Installs unstable version from github")
+  .option('-w, --wait', "Waits before exiting")
+  .parse(process.argv);
 
 process.chdir(__dirname);
-
-// require('tty').setRawMode(true);    
 
 function loadInfo(err) {
   abortIf(err);
@@ -17,7 +22,7 @@ function loadInfo(err) {
 }
 
 function checkCurrentVersion() {
-  if (~process.argv.indexOf('-f') || ~process.argv.indexOf('--force')) {
+  if (program.force || program.master) {
     echo("Cleaning directory to force reinstall...");
     rm('-rf', './node_modules/deployd');
     install();
@@ -39,9 +44,13 @@ function checkCurrentVersion() {
 }
 
 function install() {
-  echo("Installing Deployd...");
-  
-  npm.commands.install([DEPLOYD], finished);
+  if (program.master) {
+    echo("Installing Deployd from github...");  
+    npm.commands.install(['https://github.com/deployd/deployd/tarball/master'], finished);
+  } else {
+    echo("Installing Deployd...");  
+    npm.commands.install(['deployd'], finished);
+  }  
 }
 
 function checkLatestVersion(err, data) {
@@ -51,7 +60,7 @@ function checkLatestVersion(err, data) {
   echo("Latest version is " + version);
   if (version !== deploydPackage.version) {
     echo("Updating Deployd...");
-    npm.commands.update([DEPLOYD], finished);
+    npm.commands.update(['deployd'], finished);
   } else {
     echo("Up to date. If needed, use the --force flag to reinstall");
     end(0);
@@ -65,6 +74,7 @@ function finished(err) {
   var newPackage = require('./node_modules/deployd/package'),
       version = newPackage.version;
 
+  echo("");
   echo("Installed Deployd version " + version);
   end(0);
 }
@@ -77,19 +87,23 @@ function abortIf(err) {
 }
 
 function end(code) {
-  if (~process.argv.indexOf('-w') || ~process.argv.indexOf('--wait')) {
-    echo("");
-    process.stdout.write("Press any key to continue...");
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-    process.stdin.on('data', function() {
+  if (program.wait) {
       echo("");
-      exit(code);
-    });
+      process.stdout.write("Press any key to continue...");
+      process.stdin.resume();
+      process.stdin.setEncoding('utf8');
+      process.stdin.on('data', function() {
+        echo("");
+        exit(code);
+      });
   } else {
     exit(code);  
   }
 }
 
-//TODO: Don't force!
-npm.load({force: true, production: true}, loadInfo);
+process.on('uncaughtException', function (err) {
+  console.log(err);
+  end(1);
+});
+
+npm.load({production: true}, loadInfo);
